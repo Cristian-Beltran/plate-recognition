@@ -1,5 +1,5 @@
 import flet as ft
-from pages.camera import camera_page
+from pages.camera import camera_page,stop_camera
 from pages.history import history_page
 from pages.vehicles import vehicles_page
 from pages.users import users_page
@@ -7,8 +7,9 @@ from pages.users import users_page
 def main(page: ft.Page):
     page.title = "Vehicle Tracker"
     content = ft.Column(expand=True)
-    content.controls.append(vehicles_page(page))
+    content.controls.append(camera_page(page))
     def on_navigation(e):
+        stop_camera()
         content.controls.clear()
         if e.control.selected_index == 0:
             content.controls.append(camera_page(page))

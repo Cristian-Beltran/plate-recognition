@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker,joinedload
 from models.models import Vehicle, History, Base
 from datetime import datetime
 import base64
@@ -59,7 +59,7 @@ class HistoryService:
 
     def get_histories_autorized(self):
         session = self.Session()
-        histories = session.query(History).filter(History.authorized == True).all()
+        histories = session.query(History).options(joinedload(History.vehicle)).filter(History.authorized == True).all()
         for history in histories:
             history.image = self.get_history_image(history.id)
         return histories
@@ -70,14 +70,12 @@ class HistoryService:
         for history in histories:
             history.image = self.get_history_image(history.id)
         return histories
-
     def get_histories_today(self):
         session = self.Session()
-        histories = session.query(History).filter(History.created_at >= datetime.now()).all()
+        histories = session.query(History).filter(History.created_at >= datetime.now()).order_by(History.created_at.desc()).all()
         for history in histories:
             history.image = self.get_history_image(history.id)
         return histories
-
     def get_last_history(self):
         session = self.Session()
         history = session.query(History).order_by(History.created_at.desc()).first()

@@ -11,7 +11,7 @@ plate = ft.TextField(label="Placa")
 driver = ft.TextField(label="Conductor")
 cellphone = ft.TextField(label="Teléfono")
 license = ft.TextField(label="Licencia")
-
+photo = ft.FileUpload(label="Foto")
 
 
 def validate_form():
@@ -219,7 +219,7 @@ def vehicles_page(page: ft.Page):
             input_search,
             add_vehicle,
         ], spacing=20),
-        ft.DataTable(width=1000, columns=[
+        ft.ListView([ft.DataTable(width=800, columns=[
             ft.DataColumn(ft.Text("Marca"), numeric=False),
             ft.DataColumn(ft.Text("Modelo"), numeric=False),
             ft.DataColumn(ft.Text("Año"), numeric=False),
@@ -229,5 +229,5 @@ def vehicles_page(page: ft.Page):
             ft.DataColumn(ft.Text("Teléfono"), numeric=False),
             ft.DataColumn(ft.Text("Licencia"), numeric=False),
             ft.DataColumn(ft.Text("Acciones"), numeric=False)
-        ], rows=rows, expand=True)
+        ], rows=rows, expand=True)], expand=1, spacing=10, padding=20, auto_scroll=True)
     ],expand=True)

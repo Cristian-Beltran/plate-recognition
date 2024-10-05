@@ -176,18 +176,18 @@ def users_page(page: ft.Page):
     return ft.Column([
         title,
         ft.Row([input_search, add_user],spacing=20),
-        ft.DataTable(
-                    width=1000,
-                    columns=[
-                        ft.DataColumn(ft.Text("Id"), numeric=True),
-                        ft.DataColumn(ft.Text("Nombre completo")),
-                        ft.DataColumn(ft.Text("Nombre de usuario")),
-                        ft.DataColumn(ft.Text("Rol")),
-                        ft.DataColumn(ft.Text("Acciones"))
-                    ],
-                    rows=rows,
-                    expand=True,
-                ),
+        ft.ListView([ft.DataTable(
+            width=800,
+            columns=[
+                ft.DataColumn(ft.Text("Id"), numeric=True),
+                ft.DataColumn(ft.Text("Nombre completo")),
+                ft.DataColumn(ft.Text("Nombre de usuario")),
+                ft.DataColumn(ft.Text("Rol")),
+                ft.DataColumn(ft.Text("Acciones"))
+            ],
+            rows=rows,
+            expand=True,
+        )],expand=1, spacing=10, padding=20, auto_scroll=True)
     ],
     expand=True
     )
