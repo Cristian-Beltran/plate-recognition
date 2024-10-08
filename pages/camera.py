@@ -1,11 +1,16 @@
 import cv2
+import pytesseract
+import re
+from ultralytics import YOLO
 import flet as ft
 import threading
 import time
 import base64
+import os
 from flet import Image
 from services.vehicles_service import VehiclesService
 from services.history_service import HistoryService
+from datetime import datetime
 
 rows = []
 stop_event = threading.Event()
@@ -19,11 +24,37 @@ card3 = ft.Card(content=ft.Text("Sin Datos"), )
 service_history = HistoryService()
 size_font = 10
 
+try:
+    model_path = os.path.join(os.path.dirname(__file__), "../model/runs/detect/train/weights/best.pt")
+    model = YOLO(model_path)
+except Exception as e:
+    print(f"Error al cargar el modelo: {e}")
+    exit()
+
+
+def preprocess_image(img):
+    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray_img = cv2.blur(gray_img, (3, 3))
+    return gray_img
+
+# Redimensionar imagen de la placa para mejor reconocimiento
+def resize_plate_image(img):
+    return cv2.resize(img, (400, 100), interpolation=cv2.INTER_LINEAR)
+
+# Filtro para texto de placas vehiculares (4 números y 3 letras)
+def filter_plate_text(text):
+    match = re.match(r'\d{4}[A-Z]{3}', text)
+    if match:
+        return match.group(0)
+    return None
+
 def formated_date(date):
     return date.strftime("%d/%m/%Y %H:%M")
 
-def add_history(page):
-    service_history.create_history("123456789", camera_feed.src_base64)
+def add_history(plate):
+    history = service_history.create_history(plate, camera_feed.src_base64)
+    if not history:
+        return
     # Desplazar la información existente
     card3.content = card2.content
     card2.content = card1.content
@@ -99,12 +130,29 @@ def stop_camera():
     stop_event.set()
 
 def capture_camera():
-    cap = cv2.VideoCapture(0)  # 0 para la cámara por defecto
+    cap = cv2.VideoCapture(0)
     while not stop_event.is_set():
         ret, frame = cap.read()
         if ret:
             try:
-                # Convertir el frame capturado a formato JPEG en memoria
+                # Detectar las placas vehiculares en el frame
+                results = model(frame)
+                if(len(results) > 0):
+                    for result in results:
+                        boxes = result.boxes
+                        if boxes is not None:
+                            for box in boxes:
+                                # Obtener las coordenadas del cuadro de la placa
+                                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)  # Dibuja un rectángulo sobre la placa
+                                plate_img = frame[y1:y2, x1:x2]
+                                plate_img = preprocess_image(plate_img)
+                                text = pytesseract.image_to_string(plate_img, config='--psm 11 --oem 1').strip().upper()
+                                filtered_text = filter_plate_text(text)
+                                if filtered_text:
+                                    add_history(text)
+                                    cv2.putText(frame, text, (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+                # Actualizar el feed de la cámara en la interfaz
                 _, img_encoded = cv2.imencode('.png', frame)
                 img_base64 = base64.b64encode(img_encoded)
                 camera_feed.src_base64 = img_base64.decode('utf-8')
@@ -113,9 +161,8 @@ def capture_camera():
                 camera_feed.update()
             except Exception as e:
                 print(f"Error al codificar la imagen: {e}")
-        time.sleep(0.03)  # Actualizar cada 30 ms
+        time.sleep(0.01)  # Actualizar cada 30 ms
     cap.release()
-
 
 def camera_page(page: ft.Page):
     title = ft.Text("Cámara", theme_style=ft.TextThemeStyle.HEADLINE_MEDIUM)
@@ -128,6 +175,7 @@ def camera_page(page: ft.Page):
         camera_thread = threading.Thread(target=capture_camera, daemon=True)
         camera_thread.start()
     get_histories_today(page)
+
     return ft.Column([
         title,
         ft.Row([
@@ -147,6 +195,5 @@ def camera_page(page: ft.Page):
             ], expand=True),
             ft.VerticalDivider(width=1),
             list,
-            ft.IconButton(icon=ft.icons.ADD, on_click=add_history, tooltip="Agregar historia"),
         ], expand=True),
     ], expand=True)

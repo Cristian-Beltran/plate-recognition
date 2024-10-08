@@ -1,0 +1,12 @@
+names:
+- Placas-Vehiculares
+nc: 1
+roboflow:
+  license: CC BY 4.0
+  project: detectar-placas-vehiculares
+  url: https://universe.roboflow.com/kira-kv5dz/detectar-placas-vehiculares/dataset/1
+  version: 1
+  workspace: kira-kv5dz
+test: ../test/images
+train: C:\Users\esmer\Documents\proyectos VSC\placas_vehiculares\Detectar-placas-vehiculares-1\train/images
+val: C:\Users\esmer\Documents\proyectos VSC\placas_vehiculares\Detectar-placas-vehiculares-1\valid/images

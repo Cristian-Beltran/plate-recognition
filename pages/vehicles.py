@@ -3,7 +3,28 @@ from services.vehicles_service import VehiclesService
 
 vehicle_service = VehiclesService()
 rows = []
-make = ft.TextField(label="Marca")
+make = ft.Dropdown(label="Marca", options=[
+    ft.dropdown.Option("Toyota"),
+    ft.dropdown.Option("Ford"),
+    ft.dropdown.Option("Chevrolet"),
+    ft.dropdown.Option("Honda"),
+    ft.dropdown.Option("BMW"),
+    ft.dropdown.Option("Mercedes-Benz"),
+    ft.dropdown.Option("Audi"),
+    ft.dropdown.Option("Nissan"),
+    ft.dropdown.Option("Hyundai"),
+    ft.dropdown.Option("Volkswagen"),
+    ft.dropdown.Option("Kia"),
+    ft.dropdown.Option("Subaru"),
+    ft.dropdown.Option("Mazda"),
+    ft.dropdown.Option("Tesla"),
+    ft.dropdown.Option("Jeep"),
+    ft.dropdown.Option("Volvo"),
+    ft.dropdown.Option("Porsche"),
+    ft.dropdown.Option("Lexus"),
+    ft.dropdown.Option("Jaguar"),
+    ft.dropdown.Option("Land Rover")
+])
 model = ft.TextField(label="Modelo")
 year = ft.TextField(label="Año")
 color = ft.TextField(label="Color")
@@ -11,7 +32,6 @@ plate = ft.TextField(label="Placa")
 driver = ft.TextField(label="Conductor")
 cellphone = ft.TextField(label="Teléfono")
 license = ft.TextField(label="Licencia")
-photo = ft.FileUpload(label="Foto")
 
 
 def validate_form():

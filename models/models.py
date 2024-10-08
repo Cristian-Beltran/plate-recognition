@@ -13,7 +13,7 @@ class User(Base):
     fullname = Column(String, nullable=False)
     role = Column(String, nullable=False, default="Usuario")
     def __repr__(self):
-        return f"<User(id={self.id}, username={self.username}, email={self.passowrd}, fullname={self.fullname}, role={self.role})>"
+        return f"<User(id={self.id}, username={self.username}, fullname={self.fullname}, role={self.role})>"
 
 
 class Vehicle(Base):
@@ -23,6 +23,7 @@ class Vehicle(Base):
     model = Column(String(50), nullable=False)
     year = Column(Integer, nullable=False)
     color = Column(String(30))
+    status = Column(String(30), default="Fuera")
 
     driver = Column(String(30))
     cellphone = Column(String(30))
@@ -36,7 +37,8 @@ class History(Base):
     id = Column(Integer, primary_key=True)
     plate = Column(String(30),ForeignKey("vehicles.plate"), nullable=False)
     authorized = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)
     vehicle = relationship("Vehicle", back_populates="histories")
+    type = Column(String(30), default="Entrada")
     def __repr__(self):
         return '<History(id=%r, plate=%r, created_at=%r)>' % (self.id, self.plate, self.created_at)

@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker,joinedload
+from sqlalchemy import func
 from models.models import Vehicle, History, Base
 from datetime import datetime
 import base64
@@ -15,11 +16,30 @@ class HistoryService:
 
     def create_history(self, plate, image):
         session = self.Session()
+        if not plate:
+            return False
+        history = session.query(History).filter(History.plate == plate).order_by(History.created_at.desc()).first()
+        if history:
+            time_difference = datetime.now() - history.created_at
+            if time_difference.seconds < 60:
+                return False
+
         vehicle = session.query(Vehicle).filter(Vehicle.plate == plate).first()
+
         if vehicle:
             new_history = History(plate=plate, authorized=True)
+            if vehicle.status == "Fuera":
+                vehicle.status = "Dentro"
+                new_history.type = "Entrada"
+            else:
+                vehicle.status = "Fuera"
+                new_history.type = "Salida"
         else:
             new_history = History(plate=plate)
+            if history and history.type == "Entrada":
+                new_history.type = "Salida"
+            else:
+                new_history.type = "Entrada"
 
         session.add(new_history)
         session.commit()
@@ -57,22 +77,23 @@ class HistoryService:
         session.close()
         return history
 
-    def get_histories_autorized(self):
+    def get_histories_autorized(self,date_value):
         session = self.Session()
-        histories = session.query(History).options(joinedload(History.vehicle)).filter(History.authorized == True).all()
+        histories = session.query(History).options(joinedload(History.vehicle)).filter(History.authorized == True).filter(func.date(History.created_at)== date_value).order_by(History.created_at.desc()).all()
         for history in histories:
             history.image = self.get_history_image(history.id)
         return histories
 
-    def get_histories_not_autorized(self):
+    def get_histories_not_autorized(self,date_value):
         session = self.Session()
-        histories = session.query(History).filter(History.authorized == False).all()
+        histories = session.query(History).filter(History.authorized == False).filter(func.date(History.created_at)== date_value).order_by(History.created_at.asc()).all()
         for history in histories:
             history.image = self.get_history_image(history.id)
         return histories
     def get_histories_today(self):
         session = self.Session()
-        histories = session.query(History).filter(History.created_at >= datetime.now()).order_by(History.created_at.desc()).all()
+        today = datetime.now().date()
+        histories = session.query(History).filter(History.created_at >= today).order_by(History.created_at.asc()).all()
         for history in histories:
             history.image = self.get_history_image(history.id)
         return histories
