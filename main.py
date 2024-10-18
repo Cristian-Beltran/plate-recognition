@@ -17,7 +17,6 @@ def login_page(page: ft.Page, on_login_success):
             error_message.value = "Usuario o contraseña incorrectos"
             error_message.update()
 
-
     username = ft.TextField(label="Usuario", width=300)
     password = ft.TextField(label="Contraseña", password=True, width=300)
     error_message = ft.Text(value="", color=ft.colors.RED)
@@ -26,31 +25,38 @@ def login_page(page: ft.Page, on_login_success):
         ft.Container(
             content=ft.Column(
                 [
-                    ft.Text("Iniciar sesión", size=30, weight=ft.FontWeight.BOLD),
-                    username,
-                    password,
-                    error_message,
-                    ft.ElevatedButton("Ingresar", on_click=login_click),
+                    ft.Card(
+                        content=ft.Container(
+                        content=ft.Column([
+                            ft.Text("Bienvenido", size=40, weight=ft.FontWeight.BOLD),
+                            ft.Divider(),
+                            ft.Text("Iniciar sesión", size=30, weight=ft.FontWeight.BOLD),
+                            username,
+                            password,
+                            error_message,
+                            ft.ElevatedButton("Ingresar", on_click=login_click),
+                            ft.TextButton("Olvidé mi contraseña"),
+                        ],
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        ), width=400, padding=20)
+                    ),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
             alignment=ft.alignment.center,
-            expand=True
+            expand=True,
         )
     )
     users = user_service.get_users()
     if(len(users) == 0):
-        user_service.create_user("admin", "admin", "admin","Administrador")
+        user_service.create_user("admin@mail","admin","admin","sistema","0000","00000","Administrador")
 
 def main(page: ft.Page):
     page.title = "Vehicle Tracker"
-    page.window_width = 400
-    page.window_height = 350
     page.window.resizable = False
     def show_main_content(rol):
-        page.window_width = 1100
-        page.window_height = 700
         page.window.resizable = True
         page.update()
         content = ft.Column(expand=True)

@@ -69,10 +69,16 @@ class HistoryService:
             return image_base64.decode('utf-8')
         else:
             return None
-
-    def get_history(self, plate):
+    def get_histories(self):
         session = self.Session()
-        history = session.query(History).filter(History.plate == plate).first()
+        histories = session.query(History).options(joinedload(History.vehicle)).order_by(History.created_at.desc()).all()
+        for history in histories:
+            history.image = self.get_history_image(history.id)
+        return histories
+
+    def get_history(self, id):
+        session = self.Session()
+        history = session.query(History).options(joinedload(History.vehicle)).filter(History.id == id).first()
         history.image = self.get_history_image(history.id)
         session.close()
         return history
@@ -90,13 +96,15 @@ class HistoryService:
         for history in histories:
             history.image = self.get_history_image(history.id)
         return histories
+
     def get_histories_today(self):
         session = self.Session()
         today = datetime.now().date()
-        histories = session.query(History).filter(History.created_at >= today).order_by(History.created_at.asc()).all()
+        histories = session.query(History).options(joinedload(History.vehicle)).filter(History.created_at >= today).order_by(History.created_at.desc()).all()
         for history in histories:
             history.image = self.get_history_image(history.id)
         return histories
+
     def get_last_history(self):
         session = self.Session()
         history = session.query(History).order_by(History.created_at.desc()).first()

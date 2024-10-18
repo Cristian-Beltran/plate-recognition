@@ -10,9 +10,9 @@ class VehiclesService:
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
 
-    def create_vehicle(self, make, model, year, color, plate, driver, cellphone, license):
+    def create_vehicle(self, plate, make, color, first_name, last_name, cellphone, ci, personal):
         session = self.Session()
-        new_vehicle = Vehicle(make=make, model=model, year=year, color=color, plate=plate, driver=driver, cellphone=cellphone, license=license)
+        new_vehicle = Vehicle(make=make, color=color, plate=plate, first_name=first_name, last_name=last_name, cellphone=cellphone, ci=ci, personal=personal)
         session.add(new_vehicle)
         session.commit()
         session.close()
@@ -30,19 +30,25 @@ class VehiclesService:
         session.close()
         return vehicle
 
-    def update_vehicle(self, vehicle_id, make, model, year, color, plate, driver, cellphone, license):
+    def update_vehicle(self, plate, make, color, first_name, last_name, cellphone, ci, personal):
         session = self.Session()
-        vehicle = session.query(Vehicle).filter_by(plate=vehicle_id).first()
+        vehicle = session.query(Vehicle).filter_by(plate=plate).first()
         vehicle.make = make
-        vehicle.model = model
-        vehicle.year = year
         vehicle.color = color
         vehicle.plate = plate
-        vehicle.driver = driver
+        vehicle.first_name = first_name
+        vehicle.last_name = last_name
         vehicle.cellphone = cellphone
-        vehicle.license = license
+        vehicle.ci = ci
+        vehicle.personal = personal
         session.commit()
         session.close()
+
+    def get_last_vehicle(self):
+        session = self.Session()
+        vehicle = session.query(Vehicle).order_by(Vehicle.created_at.desc()).first()
+        session.close()
+        return vehicle
 
     def delete_vehicle(self, vehicle_id):
         session = self.Session()

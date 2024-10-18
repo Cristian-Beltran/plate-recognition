@@ -8,27 +8,33 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True,autoincrement=True)
-    username = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
-    fullname = Column(String, nullable=False)
-    role = Column(String, nullable=False, default="Usuario")
+    first_name= Column(String)
+    last_name = Column(String)
+    ci = Column(String )
+    cellphone = Column(String)
+    role = Column(String, nullable=False, default="Operador")
+    last_login = Column(DateTime, default=None)
+    created_at = Column(DateTime, default=datetime.now)
     def __repr__(self):
-        return f"<User(id={self.id}, username={self.username}, fullname={self.fullname}, role={self.role})>"
+        return f"<User(id={self.id}, first_name={self.first_name}, email={self.email}, role={self.role})>"
 
 
 class Vehicle(Base):
     __tablename__ = 'vehicles'
     plate = Column(String(30), primary_key=True)
     make = Column(String(50), nullable=False)
-    model = Column(String(50), nullable=False)
-    year = Column(Integer, nullable=False)
     color = Column(String(30))
     status = Column(String(30), default="Fuera")
 
-    driver = Column(String(30))
+    first_name= Column(String(30))
+    last_name= Column(String(30))
     cellphone = Column(String(30))
-    license = Column(String(30))
+    ci = Column(String(30))
+    personal = Column(String(30), default="Estudiante")
     histories = relationship('History', back_populates='vehicle')
+    created_at = Column(DateTime, default=datetime.now)
     def __repr__(self):
         return f"<Vehicle(make='{self.make}', model='{self.model}', plate={self.plate}, driver={self.driver})>"
 
