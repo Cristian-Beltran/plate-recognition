@@ -2,6 +2,7 @@ import flet as ft
 from services.vehicles_service import VehiclesService
 import shutil
 import os
+import base64
 
 vehicle_service = VehiclesService()
 rows = []
@@ -37,7 +38,7 @@ personal = ft.Dropdown(label="Personal", options=[
     ft.dropdown.Option("Estudiante"),
     ft.dropdown.Option("Docente")
 ],expand=True)
-default_image = os.path.join("..", "assets", "icon.png")
+default_image = os.path.abspath('assets/icon.png')
 vehicle_image = ft.Image(src=default_image, width=100, height=100)
 driver_image = ft.Image(src=default_image, width=100, height=100)
 vehicle_global_id = None
@@ -56,19 +57,23 @@ selected_image_path_driver = None
 
 
 def vehicles_page(page: ft.Page):
+    def encode_image_to_base64(image_path):
+        with open(image_path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+        return encoded_string
     def upload_image_vehicle(e):
         global selected_image_path_vehicle
         selected_image_path_vehicle = e.files[0].path
         if selected_image_path_vehicle:
             # Mostrar la imagen en la app
-            vehicle_image.src = selected_image_path_vehicle
+            vehicle_image.src_base64 = encode_image_to_base64(selected_image_path_vehicle)
             page.update()
     def upload_image_driver(e):
         global selected_image_path_driver
         selected_image_path_driver = e.files[0].path
         if selected_image_path_driver:
             # Mostrar la imagen en la app
-            driver_image.src = selected_image_path_driver
+            driver_image.src_base64 = encode_image_to_base64(selected_image_path_driver)
             page.update()
 
     upload_file_dialog_vehicle = ft.FilePicker(on_result=upload_image_vehicle)
@@ -101,9 +106,10 @@ def vehicles_page(page: ft.Page):
         page.go(top_view.route)
 
     def on_add_vehicle_click(e: ft.ControlEvent):
-        vehicle_image.src = default_image
-        driver_image.src = default_image
-        selected_image_path=None
+        vehicle_image.src_base64 = encode_image_to_base64(default_image)
+        driver_image.src_base64 = encode_image_to_base64(default_image)
+        selected_image_path_driver=None
+        selected_image_path_vehicle=None
         page.go("/add")
         page.update()
 
@@ -129,15 +135,16 @@ def vehicles_page(page: ft.Page):
         cellphone.value = vehicle.cellphone
         ci.value = vehicle.ci
         personal.value = vehicle.personal
-        vehicle_image.src = default_image
-        driver_image.src = default_image
-        selected_image_path=None
+        vehicle_image.src_base64 = encode_image_to_base64(default_image)
+        driver_image.src_base64 = encode_image_to_base64(default_image)
+        selected_image_path_vehicle=None
+        selected_image_path_driver=None
         file = os.path.join(folder_name_vehicles, f"{vehicle_global_id}.jpg")
         if os.path.exists(file):
-            vehicle_image.src = file
+            vehicle_image.src_base64 = encode_image_to_base64(file)
         file = os.path.join(folder_name_drivers, f"{vehicle_global_id}.jpg")
         if os.path.exists(file):
-            driver_image.src = file
+            driver_image.src_base64 = encode_image_to_base64(file)
         page.go("/update")
         page.update()
 
@@ -169,16 +176,31 @@ def vehicles_page(page: ft.Page):
         rows.clear()
         vehicles = vehicle_service.get_vehicles()
         for vehicle in vehicles:
+            image_driver = ft.Image(src_base64=encode_image_to_base64(default_image), width=100, height=100)
+            image_vehicle = ft.Image(src_base64=encode_image_to_base64(default_image), width=100, height=100)
+            image_icon_driver =os.path.join(folder_name_drivers, f"{vehicle.plate}_driver.jpg")
+            image_icon_vehicle =os.path.join(folder_name_vehicles, f"{vehicle.plate}_vehicle.jpg")
+
+            if os.path.exists(image_icon_driver):
+                image_driver.src_base64 = encode_image_to_base64(image_icon_driver)
+            if os.path.exists(image_icon_vehicle):
+                image_vehicle.src_base64 = encode_image_to_base64(image_icon_vehicle)
             rows.append(ft.DataRow(
                 cells=[
-                    ft.DataCell(ft.Text(vehicle.plate)),
+                    ft.DataCell(
+                        ft.Row([
+                            image_driver,
+                            ft.Column([
+                                ft.Text(f"{vehicle.plate}"),
+                                ft.Text(f"{vehicle.first_name} {vehicle.last_name}", style=ft.TextThemeStyle.BODY_SMALL, color=ft.colors.GREY_500)
+                            ], horizontal_alignment=ft.CrossAxisAlignment.START, alignment=ft.MainAxisAlignment.CENTER, spacing=2)
+                        ])),
+                    ft.DataCell(ft.Text(vehicle.ci)),
+                    ft.DataCell(ft.Text(vehicle.personal)),
+                    ft.DataCell(image_vehicle),
                     ft.DataCell(ft.Text(vehicle.make)),
                     ft.DataCell(ft.Text(vehicle.color)),
-                    ft.DataCell(ft.Text(vehicle.first_name)),
-                    ft.DataCell(ft.Text(vehicle.last_name)),
-                    ft.DataCell(ft.Text(vehicle.ci)),
-                    ft.DataCell(ft.Text(vehicle.cellphone)),
-                    ft.DataCell(ft.Text(vehicle.personal)),
+                    ft.DataCell(ft.Text(formate_date(vehicle.created_at))),
                     ft.DataCell(ft.Row([
                         ft.IconButton(ft.icons.EDIT, on_click=lambda e, id=vehicle.plate: update_vehicle(id)),
                         ft.IconButton(ft.icons.DELETE, on_click=lambda e, id=vehicle.plate: delete_vehicle_modal(id)),
@@ -244,10 +266,14 @@ def vehicles_page(page: ft.Page):
                 if(selected_image_path_vehicle):
                     new_image_name = f"{vehicle_global_id}_vehicle.jpg"
                     copy = os.path.join(folder_name_vehicles, new_image_name)
+                    if os.path.exists(copy):
+                        os.remove(copy)
                     shutil.copyfile(selected_image_path_vehicle, copy)
                 if(selected_image_path_driver):
                     new_image_name = f"{vehicle_global_id}_driver.jpg"
                     copy = os.path.join(folder_name_drivers, new_image_name)
+                    if os.path.exists(copy):
+                        os.remove(copy)
                     shutil.copyfile(selected_image_path_driver, copy)
             except Exception as error:
                 print(error)
@@ -314,10 +340,14 @@ def vehicles_page(page: ft.Page):
                 if(selected_image_path_vehicle):
                     new_image_name = f"{vehicle.plate}_vehicle.jpg"
                     copy = os.path.join(folder_name_vehicles, new_image_name)
+                    if os.path.exists(copy):
+                        os.remove(copy)
                     shutil.copyfile(selected_image_path_vehicle, copy)
                 if(selected_image_path_driver):
                     new_image_name = f"{vehicle.plate}_driver.jpg"
                     copy = os.path.join(folder_name_drivers, new_image_name)
+                    if os.path.exists(copy):
+                        os.remove(copy)
                     shutil.copyfile(selected_image_path_driver, copy)
             except Exception as error:
                 print(error)
@@ -372,19 +402,33 @@ def vehicles_page(page: ft.Page):
         filtered_vehicles = [v for v in vehicle_service.get_vehicles() if search_term in v.plate.lower()]
         rows.clear()
         for vehicle in filtered_vehicles:
+            image_driver = ft.Image(src_base64=encode_image_to_base64(default_image), width=100, height=100)
+            image_vehicle = ft.Image(src_base64=encode_image_to_base64(default_image), width=100, height=100)
+            image_icon_driver =os.path.join(folder_name_drivers, f"{vehicle.plate}_driver.jpg")
+            image_icon_vehicle =os.path.join(folder_name_vehicles, f"{vehicle.plate}_vehicle.jpg")
+            if os.path.exists(image_icon_driver):
+                image_driver.src_base64 = encode_image_to_base64(image_icon_driver)
+            if os.path.exists(image_icon_vehicle):
+                image_vehicle.src_base64 = encode_image_to_base64(image_icon_vehicle)
             rows.append(ft.DataRow(
                 cells=[
-                    ft.DataCell(ft.Text(vehicle.plate)),
+                    ft.DataCell(
+                        ft.Row([
+                            image_driver,
+                            ft.Column([
+                                ft.Text(f"{vehicle.plate}"),
+                                ft.Text(f"{vehicle.first_name} {vehicle.last_name}", style=ft.TextThemeStyle.BODY_SMALL, color=ft.colors.GREY_500)
+                            ], horizontal_alignment=ft.CrossAxisAlignment.START, alignment=ft.MainAxisAlignment.CENTER, spacing=2)
+                        ])),
+                    ft.DataCell(ft.Text(vehicle.ci)),
+                    ft.DataCell(ft.Text(vehicle.personal)),
+                    ft.DataCell(image_vehicle),
                     ft.DataCell(ft.Text(vehicle.make)),
                     ft.DataCell(ft.Text(vehicle.color)),
-                    ft.DataCell(ft.Text(vehicle.first_name)),
-                    ft.DataCell(ft.Text(vehicle.last_name)),
-                    ft.DataCell(ft.Text(vehicle.ci)),
-                    ft.DataCell(ft.Text(vehicle.cellphone)),
-                    ft.DataCell(ft.Text(vehicle.personal)),
+                    ft.DataCell(ft.Text(formate_date(vehicle.created_at))),
                     ft.DataCell(ft.Row([
                         ft.IconButton(ft.icons.EDIT, on_click=lambda e, id=vehicle.plate: update_vehicle(id)),
-                        ft.IconButton(ft.icons.DELETE, on_click=lambda e, id=vehicle.id: delete_vehicle_modal(id))
+                        ft.IconButton(ft.icons.DELETE, on_click=lambda e, id=vehicle.plate: delete_vehicle_modal(id)),
                     ]))
                 ]
             ))
@@ -410,13 +454,12 @@ def vehicles_page(page: ft.Page):
                             column_spacing=20,
                             columns=[
                                 ft.DataColumn(ft.Text("Placa")),
+                                ft.DataColumn(ft.Text("CI")),
+                                ft.DataColumn(ft.Text("Personal")),
+                                ft.DataColumn(ft.Text("Vehiculo")),
                                 ft.DataColumn(ft.Text("Marca")),
                                 ft.DataColumn(ft.Text("Color")),
-                                ft.DataColumn(ft.Text("Nombre")),
-                                ft.DataColumn(ft.Text("Apellido")),
-                                ft.DataColumn(ft.Text("CI")),
-                                ft.DataColumn(ft.Text("Celular")),
-                                ft.DataColumn(ft.Text("Personal")),
+                                ft.DataColumn(ft.Text("Creado")),
                                 ft.DataColumn(ft.Text("Acciones"))
                             ],
                             rows=rows,

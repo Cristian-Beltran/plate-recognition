@@ -74,6 +74,7 @@ class HistoryService:
         histories = session.query(History).options(joinedload(History.vehicle)).order_by(History.created_at.desc()).all()
         for history in histories:
             history.image = self.get_history_image(history.id)
+        session.close()
         return histories
 
     def get_history(self, id):
@@ -88,6 +89,7 @@ class HistoryService:
         histories = session.query(History).options(joinedload(History.vehicle)).filter(History.authorized == True).filter(func.date(History.created_at)== date_value).order_by(History.created_at.desc()).all()
         for history in histories:
             history.image = self.get_history_image(history.id)
+        session.close()
         return histories
 
     def get_histories_not_autorized(self,date_value):
@@ -95,6 +97,7 @@ class HistoryService:
         histories = session.query(History).filter(History.authorized == False).filter(func.date(History.created_at)== date_value).order_by(History.created_at.asc()).all()
         for history in histories:
             history.image = self.get_history_image(history.id)
+        session.close()
         return histories
 
     def get_histories_today(self):
@@ -103,6 +106,7 @@ class HistoryService:
         histories = session.query(History).options(joinedload(History.vehicle)).filter(History.created_at >= today).order_by(History.created_at.desc()).all()
         for history in histories:
             history.image = self.get_history_image(history.id)
+        session.close()
         return histories
 
     def get_last_history(self):

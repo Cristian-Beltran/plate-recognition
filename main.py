@@ -5,17 +5,86 @@ from pages.vehicles import vehicles_page
 from pages.users import users_page
 from services.user_service import UserService
 
-user_service = UserService()
-def login_page(page: ft.Page, on_login_success):
+import random
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
+user_service = UserService()
+def send_password_reset_email(email,code):
+    sender = "cristian.beltran.paco@gmail.com"
+    receiver = email
+    password = "fgzyngdpxvuobaqz"
+    # Crear el mensaje
+    message = MIMEMultipart()
+    message["From"] = sender
+    message["To"] = receiver
+    message["Subject"] = "Restablecer contraseña"
+    # Cuerpo del correo (texto simple)
+    body = f"Codigo:{code} "
+    message.attach(MIMEText(body, "plain"))
+    try:
+        # Conectar al servidor SMTP de Gmail
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(sender, password)
+            server.sendmail(sender, receiver, message.as_string())
+            print(f"Correo enviado con éxito a {receiver} con el código {code}")
+    except Exception as e:
+        print(f"Error al enviar el correo: {e}")
+
+
+def login_page(page: ft.Page, on_login_success):
     page.update()
     def login_click(e):
         login = user_service.login(username.value, password.value)
         if login:
-            on_login_success(login.role)  # Si el login es correcto, llama a la función de éxito
+            user_service.add_last_login(login.id)
+            on_login_success(login.role,f"{login.first_name} {login.last_name}")  # Si el login es correcto, llama a la función de éxito
         else:
             error_message.value = "Usuario o contraseña incorrectos"
             error_message.update()
+
+    def reset_password_click(e):
+        email = username.value
+        if not user_service.get_user_email(email):
+            error_message.value = "Usuario no existe"
+            error_message.update()
+            return
+
+        code = str(random.randint(1000, 9999))
+        code_input = ft.TextField(label="Codigo", width=300)
+        passwor_input = ft.TextField(label="Contraseña", password=True, width=300)
+        password_confirm = ft.TextField(label="Confirmar contraseña", password=True, width=300)
+        error_message_reset = ft.Text(value="", color=ft.colors.RED)
+        def reset(e):
+            if(passwor_input.value == password_confirm.value and code_input.value == code):
+                user_service.reset_password(email,passwor_input.value)
+                user = user_service.get_user_email(email)
+                handle_close(e)
+                on_login_success(user.role,f"{user.first_name} {user.last_name}")
+            else:
+                error_message_reset.value = "Contraseñas no coinciden"
+
+        def handle_close(e):
+            page.close(modal)
+
+        modal = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Resetear contraseña"),
+            content=ft.Column([
+                code_input,
+                passwor_input,
+                password_confirm,
+                error_message_reset,
+            ]),
+            actions=[
+                ft.TextButton("Resetear", on_click=reset),
+                ft.TextButton("Cerrar", on_click=handle_close),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        page.open(modal)
+        send_password_reset_email(email,code)
 
     username = ft.TextField(label="Usuario", width=300)
     password = ft.TextField(label="Contraseña", password=True, width=300)
@@ -35,7 +104,7 @@ def login_page(page: ft.Page, on_login_success):
                             password,
                             error_message,
                             ft.ElevatedButton("Ingresar", on_click=login_click),
-                            ft.TextButton("Olvidé mi contraseña"),
+                            ft.TextButton("Olvidé mi contraseña", on_click=reset_password_click),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -51,12 +120,17 @@ def login_page(page: ft.Page, on_login_success):
     )
     users = user_service.get_users()
     if(len(users) == 0):
-        user_service.create_user("admin@mail","admin","admin","sistema","0000","00000","Administrador")
+        user_service.create_user("admin@gmail.com","admin","admin","sistema","0000","00000","Administrador")
 
 def main(page: ft.Page):
     page.title = "Vehicle Tracker"
     page.window.resizable = False
-    def show_main_content(rol):
+    def logout(page):
+        stop_camera()
+        page.controls.clear()
+        login_page(page, show_main_content)
+
+    def show_main_content(rol,full_name):
         page.window.resizable = True
         page.update()
         content = ft.Column(expand=True)
@@ -114,11 +188,12 @@ def main(page: ft.Page):
             label_type=ft.NavigationRailLabelType.ALL,
             # extended=True,
             min_width=100,
-            leading = ft.Text("Vehicle Tracker", size=20),
+            leading = ft.Column([ft.Row([ft.Text("Vehicle Tracker", size=20), ft.IconButton(ft.icons.LOGOUT, on_click=lambda e: logout(page))]), ft.Text(full_name, size=10, color=ft.colors.GREY_500)]),
             min_extended_width=400,
             group_alignment=-0.9,
             destinations=destinations,
             on_change=lambda e: on_navigation(e),
+
         )
         page.controls.clear()
         page.add(

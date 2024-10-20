@@ -4,8 +4,9 @@ from datetime import datetime
 import openpyxl
 from openpyxl import Workbook
 import os
+import base64
 
-default_image = os.path.join("..", "assets", "icon.png")
+default_image = os.path.abspath('assets/icon.png')
 image = ft.Image(src=default_image, width=100, height=100)
 def format_date(date):
     return date.strftime("%d/%m/%Y")
@@ -29,10 +30,13 @@ columns=[
     ft.DataColumn(ft.Text("Hora")),
     ft.DataColumn(ft.Text("Tipo")),
     ft.DataColumn(ft.Text("Conductor")),
-    ft.DataColumn(ft.Text("Marca de Vehículo")),
-    ft.DataColumn(ft.Text("Color de Vehículo")),
+    ft.DataColumn(ft.Text("CI")),
+    ft.DataColumn(ft.Text("Personal")),
+    ft.DataColumn(ft.Text("Marca")),
+    ft.DataColumn(ft.Text("Color")),
     ft.DataColumn(ft.Text("Acciones"))
 ]
+
 size_font=9
 
 input_search = ft.TextField(label="Buscar", icon=ft.icons.SEARCH,expand=True)
@@ -41,11 +45,16 @@ check_authorized = ft.Checkbox(label="Autorizados", value=True,expand=True)
 check_not_authorized = ft.Checkbox(label="No Autorizados", value=False,expand=True)
 card = ft.Card(content=ft.Text(""), expand=True)
 
+def encode_image_to_base64(image_path):
+    with open(image_path, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+    return encoded_string
+
 def generate_card(data):
     if data.authorized:
         file = os.path.join(folder_name_drivers, f"{data.vehicle.plate}_driver.jpg")
         if data.type == "Salida":
-            color = ft.colors.REED_200
+            color = ft.colors.RED_200
         else:
             color = ft.colors.GREEN_200
         return ft.Container(ft.Column([
@@ -67,14 +76,15 @@ def generate_card(data):
                 ft.Column([
                     ft.Text(f"Marca: {data.vehicle.make}", size=size_font),
                     ft.Text(f"Color: {data.vehicle.color}", size=size_font),
-                ])
+                    ft.Text(f"Nombre: {data.vehicle.first_name} {data.vehicle.last_name}", size=size_font),
+                ], spacing=1, alignment=ft.MainAxisAlignment.CENTER)
             ]),
             ft.Row([
-                ft.Text(f"Nombre: {data.vehicle.first_name} {data.vehicle.last_name}", size=size_font),
                 ft.Text(f"Personal: {data.vehicle.personal}", size=size_font),
                 ft.Text(f"CI: {data.vehicle.ci}", size=size_font),
-            ],),
-            ft.Text(f"{data.type}", size=size_font)],
+                ft.Card(ft.Container(content=ft.Text(f"{data.type}", size=size_font), padding=10), color=color),
+            ])],
+            spacing=3,
             alignment=ft.MainAxisAlignment.START,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         ),padding=20)
@@ -100,7 +110,6 @@ def generate_card(data):
         ),padding=20)
 
 def view_image(page,id):
-    print(id)
     history = history_service.get_history(id)
     card.content = generate_card(history)
     if(history.authorized):
@@ -111,33 +120,28 @@ def view_image(page,id):
     page.update()
 
 def get_histories(page):
+    global date_value
     rows.clear()
     histories = history_service.get_histories()
-    if(input_search.value):
-        histories = [entry for entry in histories if input_search.value.lower() in entry.plate.lower()]
+    filtered_histories = [
+            entry for entry in histories
+            if (not input_search.value or input_search.value.lower() in entry.plate.lower())  # Filtrado por placa
+            and (personal_filter.value == "Todos" or  # Filtrado por personal (opcional)
+                 (personal_filter.value == "Docente" and getattr(entry.vehicle, 'personal', None) == True) or
+                 (personal_filter.value == "Estudiante" and getattr(entry.vehicle, 'personal', None) == False))
+            and (check_authorized.value and check_not_authorized.value or  # Filtrado por autorización
+                 check_authorized.value and entry.authorized == True or
+                 check_not_authorized.value and entry.authorized == False)
+            and (not date_value or date_value == entry.created_at.date())  # Filtrado por fecha
+        ]
 
-    if(personal_filter.value == "Todos"):
-        pass
-    elif(personal_filter.value == "Docente"):
-        histories = [entry for entry in histories if entry.vehicle.personal == True]
-    elif(personal_filter.value == "Estudiante"):
-        histories = [entry for entry in histories if entry.vehicle.personal == False]
-
-    if(check_authorized.value and check_not_authorized.value):
-        pass
-
-    elif(check_authorized.value):
-        histories = [entry for entry in histories if entry.authorized == True]
-
-    elif(check_not_authorized.value):
-        histories = [entry for entry in histories if entry.authorized == False]
-
-    if(date_value):
-        histories = [entry for entry in histories if date_value == entry.created_at.date()]
-
-    for entry in histories:
-        print(entry.id)
+    for entry in filtered_histories:
         if(entry.authorized):
+            image_driver = ft.Image(src_base64=encode_image_to_base64(default_image), width=100, height=100)
+            image_icon_driver =os.path.join(folder_name_drivers, f"{entry.vehicle.plate}_driver.jpg")
+            if os.path.exists(image_icon_driver):
+                image_driver.src_base64 = encode_image_to_base64(image_icon_driver)
+
             rows.append(ft.DataRow(
                 cells=[
                     ft.DataCell(ft.Text(str(entry.id))),
@@ -148,7 +152,12 @@ def get_histories(page):
                         ft.Icon(name=ft.icons.ARROW_CIRCLE_RIGHT if entry.type == "Entrada" else ft.icons.ARROW_CIRCLE_LEFT, color="green" if entry.type == "Entrada" else "red"),
                         ft.Text(entry.type)
                     ])),
-                    ft.DataCell(ft.Text(f"{entry.vehicle.first_name} {entry.vehicle.last_name}")),
+                    ft.DataCell(ft.Row([
+                        image_driver,
+                        ft.Text(f"{entry.vehicle.first_name} {entry.vehicle.last_name}")
+                    ])),
+                    ft.DataCell(ft.Text(entry.vehicle.ci)),
+                    ft.DataCell(ft.Text(entry.vehicle.personal)),
                     ft.DataCell(ft.Text(entry.vehicle.make)),
                     ft.DataCell(ft.Text(entry.vehicle.color)),
                     ft.DataCell(ft.Row([
@@ -170,6 +179,8 @@ def get_histories(page):
                     ft.DataCell(ft.Text("")),
                     ft.DataCell(ft.Text("")),
                     ft.DataCell(ft.Text("")),
+                    ft.DataCell(ft.Text("")),
+                    ft.DataCell(ft.Text("")),
                     ft.DataCell(ft.Row([
                         ft.IconButton(ft.icons.VISIBILITY, on_click=lambda e, id= entry.id: view_image(page,id)),
                     ]))
@@ -179,20 +190,24 @@ def get_histories(page):
     page.update()
 
 def download_data(path):
+    global date_value
     wb = Workbook()
     ws = wb.active
     if ws is None:
         ws = wb.create_sheet()
     ws.title = "Historial de Entrada"
-    ws.append(["Id", "Placa", "Fecha", "Hora", "Tipo", "Conductor", "Modelo de Vehículo", "Color de Vehículo" ])
-    name = "Entrada_Autorizados" if history_auth.value else "Entrada_No_Autorizados"
+    ws.append(["Id", "Placa", "Fecha", "Hora", "Tipo", "Conductor", "Marca de Vehículo", "Color de Vehículo" ])
     if(not history_auth.value):
-        rows = [entry for entry in history_service.get_histories_not_autorized(date_value) if text_value in entry.plate.lower()]
+        rows = [entry for entry in history_service.get_histories_not_autorized(date_value) if input_search.value.lower() in entry.plate.lower()]
     else:
-        rows = [entry for entry in history_service.get_histories_autorized(date_value) if text_value in entry.plate.lower()]
+        rows = [entry for entry in history_service.get_histories_autorized(date_value) if input_search.value.lower() in entry.plate.lower()]
+
     for entry in rows:
-        ws.append([str(entry.id), entry.plate, format_date(entry.created_at), get_hours(entry.created_at), entry.type, entry.vehicle.driver, entry.vehicle.model, str(entry.vehicle.color)])
-    name += "_" + format_date(date_value)
+        if entry.authorized:
+            ws.append([str(entry.id), entry.plate, format_date(entry.created_at), get_hours(entry.created_at), entry.type, entry.vehicle.first_name + " "+ entry.vehicle.last_name, entry.vehicle.make , str(entry.vehicle.color)])
+        else:
+            ws.append([str(entry.id), entry.plate, format_date(entry.created_at), get_hours(entry.created_at), entry.type, "" , "", ""])
+    name = "Entrada_" + format_date(date_value).replace("/", "-")
     full_path = os.path.join(path, name + ".xlsx")
     wb.save(full_path)
 
@@ -204,12 +219,14 @@ def history_page(page: ft.Page):
         get_histories(page)
 
     def clear(event):
+        global date_value
         date_text.value = datetime.now().date()
         date_value = datetime.now().date()
         get_histories(page)
         page.update()
 
     def select_date(event):
+        global date_value
         date_text.value = event.control.value.strftime('%d/%m/%Y')
         date_value = event.control.value.date()
         page.update()
@@ -235,7 +252,7 @@ def history_page(page: ft.Page):
             ft.Column([
                 ft.Row([
                     ft.Stack(
-                    height = 300,
+                    height=500,
                     controls=[
                         ft.Column([
                             ft.DataTable(

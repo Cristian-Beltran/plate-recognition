@@ -68,14 +68,32 @@ class UserService:
         session.close()
         return user
 
+    def add_last_login(self, user_id):
+        session = self.Session()
+        user = session.query(User).filter(User.id == user_id).first()
+        if user:
+            user.last_login = datetime.datetime.now()
+            session.commit()
+        session.close()
+
     def login(self, email, password):
         session = self.Session()
-        try:
-            user = session.query(User).filter(User.email == email).first()
-            if user and user.password == password:
-                user.last_login = datetime.datetime.now()
-                return user
-            else:
-                return None
-        finally:
-            session.close()
+        user = session.query(User).filter(User.email == email).first()
+        if(user and password == user.password):
+            return user
+        session.close()
+        return None
+
+    def reset_password(self, email, password):
+        session = self.Session()
+        user = session.query(User).filter(User.email == email).first()
+        if user:
+            user.password = password
+            session.commit()
+        session.close()
+
+    def get_user_email(self, email):
+        session = self.Session()
+        user = session.query(User).filter(User.email == email).first()
+        session.close()
+        return user
