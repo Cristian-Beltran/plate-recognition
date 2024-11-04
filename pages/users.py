@@ -5,6 +5,7 @@ import os
 import base64
 import openpyxl
 from openpyxl import Workbook
+import re
 
 user_service = UserService()
 rows = []
@@ -177,10 +178,20 @@ def users_page(page: ft.Page):
         else:
             email.error_text = ""
         if not password.value:
-            password.error_text = "La contraseña es requerida"
+            password.error_text = "El campo 'Contraseña' es obligatorio"
+            return False
+        elif len(password.value) < 8:
+            password.error_text = "La contraseña debe tener al menos 8 caracteres"
+            return False
+        elif not re.search(r"[A-Z]", password.value):
+            password.error_text = "La contraseña debe tener al menos una letra mayúscula"
+            return False
+        elif not re.search(r"\d", password.value):
+            password.error_text = "La contraseña debe tener al menos un número"
             return False
         else:
-            password.error_text = ""
+            password.error_text = None
+
         if not first_name.value:
             password.error_text = "El nombre es requerido"
             return False

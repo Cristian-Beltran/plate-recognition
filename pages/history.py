@@ -37,7 +37,7 @@ columns=[
     ft.DataColumn(ft.Text("Acciones"))
 ]
 
-size_font=9
+size_font=11
 
 input_search = ft.TextField(label="Buscar", icon=ft.icons.SEARCH,expand=True)
 personal_filter = ft.Dropdown(label="Personal", value="Todos", options=[ft.dropdown.Option("Todos"), ft.dropdown.Option("Docente"), ft.dropdown.Option("Estudiante")],expand=True)
@@ -50,72 +50,144 @@ def encode_image_to_base64(image_path):
         encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
     return encoded_string
 
+
 def generate_card(data):
     if data.authorized:
         file = os.path.join(folder_name_drivers, f"{data.vehicle.plate}_driver.jpg")
-        if data.type == "Salida":
-            color = ft.colors.RED_200
-        else:
-            color = ft.colors.GREEN_200
-        return ft.Container(ft.Column([
-            ft.Text(data.plate, size=30),
-            ft.Container(
-                content=ft.Image(src_base64=data.image, width=200, height=150, fit=ft.ImageFit.CONTAIN,repeat=ft.ImageRepeat.NO_REPEAT),
-                alignment=ft.alignment.center,
-            ),
-            ft.Row([
-                ft.Text(f"Fecha: {format_date(data.created_at)}", size=size_font),
-                ft.Text(f"Hora: {get_hours(data.created_at)}", size=size_font),
-                ], spacing=1, alignment=ft.MainAxisAlignment.SPACE_BETWEEN )
-            ,
-            ft.Row([
+        color = ft.colors.RED_600 if data.type == "Salida" else ft.colors.GREEN_600
+        return ft.Container(
+            content=ft.Column([
+                ft.Container(content=ft.Text(f"{data.plate}", size=30, weight=ft.FontWeight.BOLD,  text_align=ft.TextAlign.CENTER), alignment=ft.alignment.center),
+
+                # Imagen del vehículo
                 ft.Container(
-                    content=ft.Image(src=file, width=100, fit=ft.ImageFit.CONTAIN,repeat=ft.ImageRepeat.NO_REPEAT),
+                    content=ft.Image(src_base64=data.image, width=200, height=150, fit=ft.ImageFit.CONTAIN, repeat=ft.ImageRepeat.NO_REPEAT),
                     alignment=ft.alignment.center,
+                    border_radius=8,
                 ),
-                ft.Column([
-                    ft.Text(f"Marca: {data.vehicle.make}", size=size_font),
-                    ft.Text(f"Color: {data.vehicle.color}", size=size_font),
-                    ft.Text(f"Nombre: {data.vehicle.first_name} {data.vehicle.last_name}", size=size_font),
-                ], spacing=1, alignment=ft.MainAxisAlignment.CENTER)
-            ]),
-            ft.Row([
-                ft.Text(f"Personal: {data.vehicle.personal}", size=size_font),
-                ft.Text(f"CI: {data.vehicle.ci}", size=size_font),
-                ft.Card(ft.Container(content=ft.Text(f"{data.type}", size=size_font), padding=10), color=color),
-            ])],
-            spacing=3,
-            alignment=ft.MainAxisAlignment.START,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        ),padding=20)
+
+                # Fecha y Hora en fila con fondo
+                ft.Row([
+                    ft.Container(
+                        content=ft.Text(f"Fecha: {format_date(data.created_at)}", size=size_font),
+                        padding=ft.padding.all(8),  # Ajuste aquí
+                        bgcolor=ft.colors.GREY_600,
+                        border_radius=5,
+                    ),
+                    ft.Container(
+                        content=ft.Text(f"Hora: {get_hours(data.created_at)}", size=size_font),
+                        padding=ft.padding.all(8),  # Ajuste aquí
+                        bgcolor=ft.colors.GREY_600,
+                        border_radius=5,
+                    ),
+                ], spacing=10, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+
+                # Información del conductor en fila con fondo
+                ft.Row([
+                    ft.Container(
+                        content=ft.Image(src=file, width=70, fit=ft.ImageFit.CONTAIN, repeat=ft.ImageRepeat.NO_REPEAT),
+                        alignment=ft.alignment.center,
+                    ),
+                    ft.Column([
+                        ft.Container(
+                            content=ft.Text(f"Marca: {data.vehicle.make}", size=size_font),
+                            padding=ft.padding.all(6),  # Ajuste aquí
+                            bgcolor=ft.colors.GREY_600,
+                            border_radius=5,
+                        ),
+                        ft.Container(
+                            content=ft.Text(f"Color: {data.vehicle.color}", size=size_font),
+                            padding=ft.padding.all(6),  # Ajuste aquí
+                            bgcolor=ft.colors.GREY_600,
+                            border_radius=5,
+                        ),
+                        ft.Container(
+                            content=ft.Text(f"Nombre: {data.vehicle.first_name} {data.vehicle.last_name}", size=size_font),
+                            padding=ft.padding.all(6),  # Ajuste aquí
+                            bgcolor=ft.colors.GREY_600,
+                            border_radius=5,
+                        ),
+                    ], spacing=4)
+                ]),
+
+                # Personal, CI y tipo en fila
+                ft.Row([
+                    ft.Container(
+                        content=ft.Text(f"Personal: {data.vehicle.personal}", size=size_font),
+                        padding=ft.padding.all(8),  # Ajuste aquí
+                        bgcolor=ft.colors.GREY_600,
+                        border_radius=5,
+                    ),
+                    ft.Container(
+                        content=ft.Text(f"CI: {data.vehicle.ci}", size=size_font),
+                        padding=ft.padding.all(8),  # Ajuste aquí
+                        bgcolor=ft.colors.GREY_600,
+                        border_radius=5,
+                    ),
+                    ft.Container(
+                        content=ft.Text(f"{data.type}", size=size_font, color=ft.colors.WHITE),
+                        padding=ft.padding.all(8),  # Ajuste aquí
+                        bgcolor=color,
+                        border_radius=5,
+                    ),
+                ], spacing=4, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                ft.Container(content=ft.Text(f"{data.type}", size=size_font, color=ft.colors.WHITE), padding=ft.padding.all(8), bgcolor=color, border_radius=5, alignment=ft.alignment.center),
+            ], spacing=4),
+            padding=10,
+            bgcolor=ft.colors.GREY_800,
+            border_radius=10,
+            width=250,
+            alignment=ft.alignment.center,
+        )
+
     else:
-        return ft.Container(ft.Column([
-            ft.Text(data.plate, size=30),
-            ft.Container(
-                content=ft.Image(src_base64=data.image, width=200, height=150, fit=ft.ImageFit.CONTAIN,repeat=ft.ImageRepeat.NO_REPEAT),
-                alignment=ft.alignment.center,
-            ),
-            ft.Row([
-                ft.Text(f"Fecha: {format_date(data.created_at)}", size=size_font),
-                ft.Text(f"Hora: {get_hours(data.created_at)}", size=size_font),
-                ], wrap=True, spacing=1, run_spacing=1, alignment=ft.MainAxisAlignment.SPACE_BETWEEN )
-            ,
-            ft.Container(
-                content=ft.Text("NO AUTORIZADA", size=30),
-                alignment=ft.alignment.center,
-            )
-            ],
-            alignment=ft.MainAxisAlignment.START,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        ),padding=20)
+        return ft.Container(
+            content=ft.Column([
+                ft.Container(content=ft.Text(f"{data.plate}", size=30, weight=ft.FontWeight.BOLD,  text_align=ft.TextAlign.CENTER), alignment=ft.alignment.center),
+                # Imagen de no autorizada
+                ft.Container(
+                    content=ft.Image(src_base64=data.image, width=200, height=150, fit=ft.ImageFit.CONTAIN, repeat=ft.ImageRepeat.NO_REPEAT),
+                    alignment=ft.alignment.center,
+                    border_radius=8,
+                ),
+
+                # Fecha y Hora en fila con fondo
+                ft.Row([
+                    ft.Container(
+                        content=ft.Text(f"Fecha: {format_date(data.created_at)}", size=size_font),
+                        padding=ft.padding.all(8),  # Ajuste aquí
+                        bgcolor=ft.colors.GREY_600,
+                        border_radius=5,
+                    ),
+                    ft.Container(
+                        content=ft.Text(f"Hora: {get_hours(data.created_at)}", size=size_font),
+                        padding=ft.padding.all(8),  # Ajuste aquí
+                        bgcolor=ft.colors.GREY_600,
+                        border_radius=5,
+                    ),
+                ], spacing=10, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+
+                # Mensaje de no autorizado
+                ft.Container(
+                    content=ft.Text("NO AUTORIZADA", size=26, color=ft.colors.RED),
+                    alignment=ft.alignment.center,
+                    padding=ft.padding.all(10),  # Ajuste aquí
+                    bgcolor=ft.colors.RED_50,
+                    border_radius=8,
+                ),
+            ], spacing=4),
+            padding=10,
+            bgcolor=ft.colors.GREY_800,
+            border_radius=10,
+            width=250,
+            alignment=ft.alignment.center,
+            animate=ft.animation.Animation(1000, ft.AnimationCurve.BOUNCE_OUT),
+        )
+
 
 def view_image(page,id):
     history = history_service.get_history(id)
     card.content = generate_card(history)
-    if(history.authorized):
-        card.color = ft.colors.GREEN_200
-    else:
-        card.color = ft.colors.RED_200
     card.update()
     page.update()
 
@@ -163,7 +235,7 @@ def get_histories(page):
                     ft.DataCell(ft.Row([
                         ft.IconButton(ft.icons.VISIBILITY, on_click=lambda e,id=entry.id: view_image(page,id)),
                     ]))
-                ],color=ft.colors.GREEN_200
+                ],color=ft.colors.GREEN_500
             ))
         else:
             rows.append(ft.DataRow(
@@ -184,7 +256,7 @@ def get_histories(page):
                     ft.DataCell(ft.Row([
                         ft.IconButton(ft.icons.VISIBILITY, on_click=lambda e, id= entry.id: view_image(page,id)),
                     ]))
-                ],color=ft.colors.RED_200
+                ],color=ft.colors.RED_500
             ))
 
     page.update()

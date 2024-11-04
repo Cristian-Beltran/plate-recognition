@@ -3,6 +3,7 @@ from services.vehicles_service import VehiclesService
 import shutil
 import os
 import base64
+import re
 
 vehicle_service = VehiclesService()
 rows = []
@@ -139,10 +140,10 @@ def vehicles_page(page: ft.Page):
         driver_image.src_base64 = encode_image_to_base64(default_image)
         selected_image_path_vehicle=None
         selected_image_path_driver=None
-        file = os.path.join(folder_name_vehicles, f"{vehicle_global_id}.jpg")
+        file = os.path.join(folder_name_vehicles, f"{vehicle_global_id}_vehicle.jpg")
         if os.path.exists(file):
             vehicle_image.src_base64 = encode_image_to_base64(file)
-        file = os.path.join(folder_name_drivers, f"{vehicle_global_id}.jpg")
+        file = os.path.join(folder_name_drivers, f"{vehicle_global_id}_driver.jpg")
         if os.path.exists(file):
             driver_image.src_base64 = encode_image_to_base64(file)
         page.go("/update")
@@ -207,42 +208,74 @@ def vehicles_page(page: ft.Page):
                     ]))
                 ]
             ))
+
+
     def validate_form():
+        # Validación de la placa: 4 dígitos y 3 letras
         if not plate.value:
             plate.error_text = "El campo 'Placa' es obligatorio"
             return False
+        elif not re.match(r"^\d{4}[A-Za-z]{3}$", plate.value):
+            plate.error_text = "La placa debe tener 4 números y 3 letras (ej. 1234ABC)"
+            return False
         else:
             plate.error_text = None
+
+        # Validación de la marca
         if not make.value:
             make.error_text = "El campo 'Marca' es obligatorio"
             return False
         else:
             make.error_text = None
+
+        # Validación del color
         if not color.value:
             color.error_text = "El campo 'Color' es obligatorio"
             return False
         else:
             color.error_text = None
+
+        # Validación del nombre: solo letras
         if not first_name.value:
             first_name.error_text = "El campo 'Nombre' es obligatorio"
             return False
+        elif not first_name.value.isalpha():
+            first_name.error_text = "El nombre debe contener solo letras"
+            return False
         else:
             first_name.error_text = None
+
+        # Validación del apellido: solo letras
         if not last_name.value:
             last_name.error_text = "El campo 'Apellido' es obligatorio"
             return False
+        elif not last_name.value.isalpha():
+            last_name.error_text = "El apellido debe contener solo letras"
+            return False
         else:
             last_name.error_text = None
+
+        # Validación del CI: solo números
         if not ci.value:
             ci.error_text = "El campo 'CI' es obligatorio"
             return False
+        elif not ci.value.isdigit():
+            ci.error_text = "El CI debe contener solo números"
+            return False
         else:
             ci.error_text = None
+
+        # Validación del teléfono: solo números
         if not cellphone.value:
             cellphone.error_text = "El campo 'Teléfono' es obligatorio"
             return False
+        elif not cellphone.value.isdigit():
+            cellphone.error_text = "El teléfono debe contener solo números"
+            return False
         else:
             cellphone.error_text = None
+
+        # Validación del personal: obligatorio
         if not personal.value:
             personal.error_text = "El campo 'Personal' es obligatorio"
             return False
@@ -252,7 +285,8 @@ def vehicles_page(page: ft.Page):
 
     def update_vehicle_modal():
         global vehicle_global_id
-        if (vehicle_global_id != None):
+        print(vehicle_global_id)
+        if (vehicle_global_id == None):
             return ft.Container()
         def close_modal(e):
             page.views.pop()

@@ -16,13 +16,13 @@ rows = []
 stop_event = threading.Event()
 size_image = 350
 camera_thread = None
-camera_feed = Image(width=640, height=480, src=False, fit="cover")
+camera_feed = Image(height=480, src=False)
 list = ft.ListView(spacing=5, padding=10, auto_scroll=False, width=200 )
-card1 = ft.Card(content=ft.Text(""), height=380)
-card2 = ft.Card(content=ft.Text(""), height=380)
-card3 = ft.Card(content=ft.Text(""), height=380)
+card1 = ft.Card(content=ft.Text(""), height=430)
+card2 = ft.Card(content=ft.Text(""), height=430)
+card3 = ft.Card(content=ft.Text(""), height=430)
 service_history = HistoryService()
-size_font = 9
+size_font = 11
 
 try:
     model_path = os.path.join(os.path.dirname(__file__), "../model/runs/detect/train/weights/best.pt")
@@ -61,63 +61,145 @@ def get_hours(date):
 def generate_card(data):
     if data.authorized:
         file = os.path.join(folder_name_drivers, f"{data.vehicle.plate}_driver.jpg")
-        print(file)
-        if data.type == "Salida":
-            color = ft.colors.RED_200
-        else:
-            color = ft.colors.GREEN_200
-        return ft.Container(ft.Column([
-            ft.Text(data.plate, size=30),
-            ft.Container(
-                content=Image(src_base64=data.image, width=200, height=150, fit=ft.ImageFit.CONTAIN,repeat=ft.ImageRepeat.NO_REPEAT),
-                alignment=ft.alignment.center,
-            ),
-            ft.Row([
-                ft.Text(f"Fecha: {format_date(data.created_at)}", size=size_font),
-                ft.Text(f"Hora: {get_hours(data.created_at)}", size=size_font),
-                ], spacing=1, alignment=ft.MainAxisAlignment.SPACE_BETWEEN )
-            ,
-            ft.Row([
+        color = ft.colors.RED_600 if data.type == "Salida" else ft.colors.GREEN_600
+        return ft.Container(
+            content=ft.Column([
+                ft.Container(content=ft.Text(f"{data.plate}", size=30, weight=ft.FontWeight.BOLD,  text_align=ft.TextAlign.CENTER), alignment=ft.alignment.center),
+                # Imagen del vehículo
                 ft.Container(
-                    content=Image(src=file, width=70, fit=ft.ImageFit.CONTAIN,repeat=ft.ImageRepeat.NO_REPEAT),
+                    content=ft.Image(src_base64=data.image, width=200, height=150, fit=ft.ImageFit.CONTAIN, repeat=ft.ImageRepeat.NO_REPEAT),
                     alignment=ft.alignment.center,
+                    border_radius=8,
                 ),
-                ft.Column([
-                    ft.Text(f"Marca: {data.vehicle.make}", size=size_font),
-                    ft.Text(f"Color: {data.vehicle.color}", size=size_font),
-                    ft.Text(f"Nombre: {data.vehicle.first_name} {data.vehicle.last_name}", size=size_font),
-                ], spacing=1, alignment=ft.MainAxisAlignment.CENTER)
-            ]),
-            ft.Row([
-                ft.Text(f"Personal: {data.vehicle.personal}", size=size_font),
-                ft.Text(f"CI: {data.vehicle.ci}", size=size_font),
-                ft.Card(ft.Container(content=ft.Text(f"{data.type}", size=size_font), padding=10), color=color),
-            ])],
-            spacing=3,
-            alignment=ft.MainAxisAlignment.START,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        ),padding=20)
-    else:
-        return ft.Container(ft.Column([
-            ft.Text(data.plate, size=30),
-            ft.Container(
-                content=Image(src_base64=data.image, width=200, height=150, fit=ft.ImageFit.CONTAIN,repeat=ft.ImageRepeat.NO_REPEAT),
-                alignment=ft.alignment.center,
-            ),
-            ft.Row([
-                ft.Text(f"Fecha: {format_date(data.created_at)}", size=size_font),
-                ft.Text(f"Hora: {get_hours(data.created_at)}", size=size_font),
-                ], wrap=True, spacing=1, run_spacing=1, alignment=ft.MainAxisAlignment.SPACE_BETWEEN )
-            ,
-            ft.Container(
-                content=ft.Text("NO AUTORIZADA", size=30),
-                alignment=ft.alignment.center,
-            )
-            ],
-            alignment=ft.MainAxisAlignment.START,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        ),padding=20)
+                # Fecha y Hora en fila con fondo
+                ft.Row([
+                    ft.Container(
+                        content=ft.Text(f"Fecha: {format_date(data.created_at)}", size=size_font),
+                        padding=ft.padding.all(8),  # Ajuste aquí
+                        bgcolor=ft.colors.GREY_600,
+                        border_radius=5,
+                    ),
+                    ft.Container(
+                        content=ft.Text(f"Hora: {get_hours(data.created_at)}", size=size_font),
+                        padding=ft.padding.all(8),  # Ajuste aquí
+                        bgcolor=ft.colors.GREY_600,
+                        border_radius=5,
+                    ),
+                ], spacing=10, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
 
+                # Información del conductor en fila con fondo
+                ft.Row([
+                    ft.Container(
+                        content=ft.Image(src=file, width=70, fit=ft.ImageFit.CONTAIN, repeat=ft.ImageRepeat.NO_REPEAT),
+                        alignment=ft.alignment.center,
+                    ),
+                    ft.Column([
+                        ft.Container(
+                            content=ft.Text(f"Marca: {data.vehicle.make}", size=size_font),
+                            padding=ft.padding.all(6),  # Ajuste aquí
+                            bgcolor=ft.colors.GREY_600,
+                            border_radius=5,
+                        ),
+                        ft.Container(
+                            content=ft.Text(f"Color: {data.vehicle.color}", size=size_font),
+                            padding=ft.padding.all(6),  # Ajuste aquí
+                            bgcolor=ft.colors.GREY_600,
+                            border_radius=5,
+                        ),
+                        ft.Container(
+                            content=ft.Text(f"Nombre: {data.vehicle.first_name} {data.vehicle.last_name}", size=size_font),
+                            padding=ft.padding.all(6),  # Ajuste aquí
+                            bgcolor=ft.colors.GREY_600,
+                            border_radius=5,
+                        ),
+                    ], spacing=4)
+                ]),
+
+                # Personal, CI y tipo en fila
+                ft.Row([
+                    ft.Container(
+                        content=ft.Text(f"Personal: {data.vehicle.personal}", size=size_font),
+                        padding=ft.padding.all(8),  # Ajuste aquí
+                        bgcolor=ft.colors.GREY_600,
+                        border_radius=5,
+                    ),
+                    ft.Container(
+                        content=ft.Text(f"CI: {data.vehicle.ci}", size=size_font),
+                        padding=ft.padding.all(8),  # Ajuste aquí
+                        bgcolor=ft.colors.GREY_600,
+                        border_radius=5,
+                    ),
+                ], spacing=4, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                ft.Container(content=ft.Text(f"{data.type}", size=size_font, color=ft.colors.WHITE), padding=ft.padding.all(8), bgcolor=color, border_radius=5, alignment=ft.alignment.center),
+            ], spacing=4),
+            padding=10,
+            bgcolor=ft.colors.GREY_800,
+            border_radius=10,
+            width=250,
+            alignment=ft.alignment.center,
+        )
+
+    else:
+        return ft.Container(
+            content=ft.Column([
+                ft.Container(content=ft.Text(f"{data.plate}", size=30, weight=ft.FontWeight.BOLD,  text_align=ft.TextAlign.CENTER), alignment=ft.alignment.center),
+                # Imagen de no autorizada
+                ft.Container(
+                    content=ft.Image(src_base64=data.image, width=200, height=150, fit=ft.ImageFit.CONTAIN, repeat=ft.ImageRepeat.NO_REPEAT),
+                    alignment=ft.alignment.center,
+                    border_radius=8,
+                ),
+
+                # Fecha y Hora en fila con fondo
+                ft.Row([
+                    ft.Container(
+                        content=ft.Text(f"Fecha: {format_date(data.created_at)}", size=size_font),
+                        padding=ft.padding.all(8),  # Ajuste aquí
+                        bgcolor=ft.colors.GREY_600,
+                        border_radius=5,
+                    ),
+                    ft.Container(
+                        content=ft.Text(f"Hora: {get_hours(data.created_at)}", size=size_font),
+                        padding=ft.padding.all(8),  # Ajuste aquí
+                        bgcolor=ft.colors.GREY_600,
+                        border_radius=5,
+                    ),
+                ], spacing=10, alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+
+                # Mensaje de no autorizado
+                ft.Container(
+                    content=ft.Text("NO AUTORIZADA", size=26, color=ft.colors.RED),
+                    alignment=ft.alignment.center,
+                    padding=ft.padding.all(10),  # Ajuste aquí
+                    bgcolor=ft.colors.RED_50,
+                    border_radius=8,
+                ),
+            ], spacing=4),
+            padding=10,
+            bgcolor=ft.colors.GREY_800,
+            border_radius=10,
+            width=250,
+            alignment=ft.alignment.center,
+            animate=ft.animation.Animation(1000, ft.AnimationCurve.BOUNCE_OUT),
+        )
+
+blink_thread = None
+def blink_card(card, duration=60):
+    global blink_thread
+    def blink():
+        end_time = time.time() + duration  # Duración de 60 segundos
+        while time.time() < end_time:
+            card.content.bgcolor = ft.colors.GREY_800 if card.content.bgcolor == ft.colors.RED_200 else ft.colors.RED_200
+            card.update()  # Actualiza la tarjeta para reflejar el cambio de color
+            time.sleep(0.5)  # Parpadea cada 0.5 segundos
+        card.content.bgcolor = ft.colors.GREY_800
+        card.update()
+    if blink_thread is not None and blink_thread.is_alive():
+        blink_thread.join(timeout=0)  # Espera a que el hilo actual termine
+
+        # Iniciar un nuevo hilo de parpadeo
+    blink_thread = threading.Thread(target=blink)
+    blink_thread.start()
 
 def add_history(plate):
     history = service_history.create_history(plate, camera_feed.src_base64)
@@ -127,26 +209,17 @@ def add_history(plate):
     for i, row in enumerate(rows[:3]):
         if i == 0 and row.image is not None:
             card1.content = generate_card(row)
-            if row.authorized:
-                card1.color = ft.colors.GREEN_200
-            else:
-                card1.color = ft.colors.RED_200
+            if (not row.authorized):
+                print("Blinking")
+                blink_card(card1)
         elif i == 1 and row.image is not None:
             card2.content = generate_card(row)
-            if row.authorized:
-                card2.color = ft.colors.GREEN_200
-            else:
-                card2.color = ft.colors.RED_200
         elif i == 2 and row.image is not None:
             card3.content = generate_card(row)
-            if row.authorized:
-                card3.color = ft.colors.GREEN_200
-            else:
-                card3.color = ft.colors.RED_200
     card1.update()
     card2.update()
     card3.update()
-    list.controls = [ft.Card(ft.Container(content=ft.Column([ft.Text(f"Placa: {row.plate}", size=14) ,ft.Text(f"Fecha: {format_date(row.created_at)} - Hora: {get_hours(row.created_at)}", size=size_font), ft.Text(f"{row.type}", size=size_font)]),padding=10), color= (row.authorized and ft.colors.GREEN_200 or ft.colors.RED_200)) for row in rows[3:]]
+    list.controls = [ft.Card(ft.Container(content=ft.Column([ft.Text(f"Placa: {row.plate}", size=14) ,ft.Text(f"Fecha: {format_date(row.created_at)} - Hora: {get_hours(row.created_at)}", size=size_font), ft.Text(f"{row.type}", size=size_font)]),padding=10), color= (row.authorized and ft.colors.GREY_600 or ft.colors.RED_200)) for row in rows[3:]]
     list.update()
 
 def get_histories_today(page):
@@ -172,7 +245,7 @@ def get_histories_today(page):
             else:
                 card3.color = ft.colors.RED_200
 
-    list.controls = [ft.Card(ft.Container(content=ft.Column([ft.Text(f"Placa: {row.plate}", size=14) ,ft.Text(f"Fecha: {format_date(row.created_at)} - Hora: {get_hours(row.created_at)}", size=size_font), ft.Text(f"{row.type}", size=size_font)]),padding=10), color= (row.authorized and ft.colors.GREEN_200 or ft.colors.RED_200)) for row in rows[3:]]
+    list.controls = [ft.Card(ft.Container(content=ft.Column([ft.Text(f"Placa: {row.plate}", size=14) ,ft.Text(f"Fecha: {format_date(row.created_at)} - Hora: {get_hours(row.created_at)}", size=size_font), ft.Text(f"{row.type}", size=size_font)]),padding=10), color= (row.authorized and ft.colors.GREY_600 or ft.colors.RED_200)) for row in rows[3:]]
     page.update()
 
 def stop_camera():
@@ -205,7 +278,6 @@ def capture_camera():
                 _, img_encoded = cv2.imencode('.png', frame)
                 img_base64 = base64.b64encode(img_encoded)
                 camera_feed.src_base64 = img_base64.decode('utf-8')
-                camera_feed.width = frame.shape[1]
                 camera_feed.height = frame.shape[0]
                 camera_feed.update()
             except Exception as e:
@@ -237,7 +309,7 @@ def camera_page(page: ft.Page):
                     ft.Container(content=card1),
                     ft.Container(content=card2),
                     ft.Container(content=card3),
-                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+                ], alignment=ft.MainAxisAlignment.CENTER)
             ], expand=True),
             ft.VerticalDivider(width=1),
             list,

@@ -18,13 +18,13 @@ class HistoryService:
         session = self.Session()
         if not plate:
             return False
-        history = session.query(History).filter(History.plate == plate).order_by(History.created_at.desc()).first()
+        history = session.query(History).filter(History.plate.like(plate[:6] + '%') ).order_by(History.created_at.desc()).first()
         if history:
             time_difference = datetime.now() - history.created_at
             if time_difference.seconds < 60:
                 return False
 
-        vehicle = session.query(Vehicle).filter(Vehicle.plate == plate).first()
+        vehicle = session.query(Vehicle).filter(Vehicle.plate.like(plate[:6] + '%')).first()
 
         if vehicle:
             new_history = History(plate=plate, authorized=True)

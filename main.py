@@ -1,4 +1,5 @@
 import flet as ft
+import os
 from pages.camera import camera_page,stop_camera
 from pages.history import history_page
 from pages.vehicles import vehicles_page
@@ -45,18 +46,37 @@ def login_page(page: ft.Page, on_login_success):
             error_message.update()
 
     def reset_password_click(e):
-        email = username.value
-        if not user_service.get_user_email(email):
-            error_message.value = "Usuario no existe"
-            error_message.update()
-            return
+        code = ""
+        email = ""
 
-        code = str(random.randint(1000, 9999))
+        def send_code_email(e):
+            global code
+            global email
+            code = str(random.randint(1000, 9999))
+            email = emailText.value
+            if not user_service.get_user_email(email):
+                error_message_reset.value = "Email no existe"
+                page.update()
+                return
+            send_password_reset_email(email,code)
+            send_message.value = "Se ha enviado un código a tu email"
+
+        emailText = ft.TextField(label="Email", width=300)
+        button = ft.ElevatedButton("Enviar Codigo", on_click=send_code_email)
         code_input = ft.TextField(label="Codigo", width=300)
         passwor_input = ft.TextField(label="Contraseña", password=True, width=300)
         password_confirm = ft.TextField(label="Confirmar contraseña", password=True, width=300)
-        error_message_reset = ft.Text(value="", color=ft.colors.RED)
+        error_message_reset = ft.Text("",color=ft.colors.RED_400)
+        send_message = ft.Text("", color=ft.colors.GREEN_400)
         def reset(e):
+            global code
+            global email
+            print(email, code, passwor_input.value, password_confirm.value)
+            if (email == "" and code == ""):
+                error_message_reset.value = "Email o código no ingresados"
+                page.update()
+                return
+
             if(passwor_input.value == password_confirm.value and code_input.value == code):
                 user_service.reset_password(email,passwor_input.value)
                 user = user_service.get_user_email(email)
@@ -64,6 +84,7 @@ def login_page(page: ft.Page, on_login_success):
                 on_login_success(user.role,f"{user.first_name} {user.last_name}")
             else:
                 error_message_reset.value = "Contraseñas no coinciden"
+                page.update()
 
         def handle_close(e):
             page.close(modal)
@@ -72,10 +93,13 @@ def login_page(page: ft.Page, on_login_success):
             modal=True,
             title=ft.Text("Resetear contraseña"),
             content=ft.Column([
+                error_message_reset,
+                emailText,
+                button,
+                send_message,
                 code_input,
                 passwor_input,
                 password_confirm,
-                error_message_reset,
             ]),
             actions=[
                 ft.TextButton("Resetear", on_click=reset),
@@ -84,11 +108,11 @@ def login_page(page: ft.Page, on_login_success):
             actions_alignment=ft.MainAxisAlignment.END,
         )
         page.open(modal)
-        send_password_reset_email(email,code)
 
     username = ft.TextField(label="Usuario", width=300)
     password = ft.TextField(label="Contraseña", password=True, width=300)
     error_message = ft.Text(value="", color=ft.colors.RED)
+    logo = os.path.abspath('assets/logo.png')
     # Estructura del formulario de login
     page.add(
         ft.Container(
@@ -98,6 +122,12 @@ def login_page(page: ft.Page, on_login_success):
                         content=ft.Container(
                         content=ft.Column([
                             ft.Text("Bienvenido", size=40, weight=ft.FontWeight.BOLD),
+                            # Imagen centrada de logo
+                            ft.Container(
+                                content=ft.Image(src=logo, width=200, height=100, fit=ft.ImageFit.CONTAIN, repeat=ft.ImageRepeat.NO_REPEAT),
+                                alignment=ft.alignment.center,
+                                border_radius=8,
+                            ),
                             ft.Divider(),
                             ft.Text("Iniciar sesión", size=30, weight=ft.FontWeight.BOLD),
                             username,
@@ -124,6 +154,25 @@ def login_page(page: ft.Page, on_login_success):
 
 def main(page: ft.Page):
     page.title = "Vehicle Tracker"
+    page.dark_theme = ft.Theme(
+            color_scheme=ft.ColorScheme(
+                primary=ft.colors.CYAN,
+                on_primary=ft.colors.BLACK,
+                primary_container=ft.colors.CYAN_700,
+                on_primary_container=ft.colors.WHITE,
+                secondary=ft.colors.LIME,
+                on_secondary=ft.colors.BLACK,
+                secondary_container=ft.colors.LIME_700,
+                on_secondary_container=ft.colors.WHITE,
+                error=ft.colors.RED_ACCENT,
+                on_error=ft.colors.BLACK,
+                background=ft.colors.BLACK,
+                on_background=ft.colors.WHITE,
+                surface=ft.colors.GREY_900,
+                on_surface=ft.colors.WHITE,
+            )
+        )
+    page.theme_mode = ft.ThemeMode.DARK
     page.window.resizable = False
     def logout(page):
         stop_camera()
